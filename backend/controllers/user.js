@@ -1,6 +1,5 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-
 //Variables d'environnements
 const dotenv = require("dotenv");
 dotenv.config();
@@ -27,7 +26,7 @@ exports.login = (req, res, next) => {
     User.findOne({ email: req.body.email })
         .then(user => {
             if (!user) {
-                return res.status(401).json({ message: 'Paire login/mot de passe incorrecte'});
+                return res.status(401).json({ message: 'Paire login/mot de passe incorrecte' });
             }
             bcrypt.compare(req.body.password, user.password)
                 .then(valid => {

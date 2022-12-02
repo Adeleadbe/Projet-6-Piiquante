@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 //Pour avoir un identifiant unique
 const uniqueValidator = require('mongoose-unique-validator')
 
