@@ -2,10 +2,13 @@ const Sauce = require('../models/Sauce');
 
 exports.createSauce = (req, res, next) => {
     const sauceObject = JSON.parse(req.body.sauce);
+    //Supprime l’id car il va être généré automatiquement par la base de données
     delete sauceObject._id;
+    //Supprime le champs userId qui correspond à la personne qui a créé l’objet
     delete sauceObject._userId;
     const sauce = new Sauce({
         ...sauceObject,
+        //Utilisation de userId qui vient du token d’authentification pour la sécurité
         userId: req.auth.userId,
         imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`,
         likes: 0,
@@ -60,28 +63,22 @@ exports.createSauce = (req, res, next) => {
   }
 
   exports.likes = (req, res) => {
-    if (req.body.like === 1){
+    if (req.body.like === 1 || req.body.like === -1){
+      const addOne = req.body.like === 1 ? { likes: 1 } : { dislikes: 1 }
+      const addOneUsers = req.body.like === 1 ? {usersLiked: req.body.userId} : {usersDisliked: req.body.userId}
       Sauce.updateOne({
-        _id: req.params.id}, { $inc: { likes : 1 }, $push: {usersLiked: req.body.userId} })
+        _id: req.params.id}, { $inc: addOne, $push: addOneUsers })
         .then(() => res.status(200).json({ message: 'Like ajouté !'}))
-        .catch(() => res.status(400).json({ error }));
-    } else if (req.body.like === -1){
-      Sauce.updateOne({
-        _id: req.params.id}, { $inc: { dislikes : 1 }, $push: {usersDisliked: req.body.userId} })
-        .then(() => res.status(200).json({ message: 'Dislike ajouté !'}))
         .catch(() => res.status(400).json({ error }));
     } else { 
       Sauce.findOne({ _id: req.params.id })
         .then(sauce => {
-          if (sauce.usersLiked.includes(req.body.userId)) { 
+          if (sauce.usersLiked.includes(req.body.userId) || sauce.usersDisliked.includes(req.body.userId)) {
+            const deleteOne = sauce.usersLiked.includes(req.body.userId) ? { likes: -1 } : { dislikes: -1 }
+            const deleteOneUser = sauce.usersLiked.includes(req.body.userId) ? { usersLiked: req.body.userId } : { usersDisliked: req.body.userId }
             Sauce.updateOne({ 
-              _id: req.params.id }, { $inc: { likes: -1 }, $pull: { usersLiked: req.body.userId } })
+              _id: req.params.id }, { $inc: deleteOne, $pull: deleteOneUser })
               .then(() => { res.status(200).json({ message: 'Like supprimé !' }) })
-              .catch(error => res.status(400).json({ error }))
-          } else if (sauce.usersDisliked.includes(req.body.userId)) {
-            Sauce.updateOne({ 
-              _id: req.params.id }, { $inc: { dislikes: -1 }, $pull: { usersDisliked: req.body.userId } })
-              .then(() => { res.status(200).json({ message: 'Dislike supprimé !' }) })
               .catch(error => res.status(400).json({ error }))
           }
         })
